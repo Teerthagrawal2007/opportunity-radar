@@ -48,7 +48,19 @@ class GeminiLimiter {
 const geminiLimiter = new GeminiLimiter();
 
 function getGenAI(): GoogleGenAI {
-  const apiKey = process.env.GEMINI_API_KEY;
+  let apiKey = process.env.GEMINI_API_KEY;
+  try {
+    const envLocal = path.resolve(process.cwd(), ".env.local");
+    if (fs.existsSync(envLocal)) {
+      const parsed = dotenv.parse(fs.readFileSync(envLocal));
+      if (parsed.GEMINI_API_KEY && parsed.GEMINI_API_KEY.trim()) {
+        apiKey = parsed.GEMINI_API_KEY.trim();
+      }
+    }
+  } catch {
+    // fallback
+  }
+
   if (!apiKey) {
     throw new Error("GEMINI_API_KEY is not configured in .env.local");
   }

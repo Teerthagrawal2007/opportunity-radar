@@ -1,8 +1,21 @@
+import * as dotenv from "dotenv";
+import * as path from "path";
+import * as fs from "fs";
 import { SearchResultItem, PageFetchResult } from "./types";
 import { getCachedPage, setCachedPage } from "./cache";
 
 const TINYFISH_SEARCH_URL = "https://api.search.tinyfish.ai";
 const TINYFISH_FETCH_URL = "https://api.fetch.tinyfish.ai";
+
+// Ensure .env.local takes precedence over Windows process environment
+try {
+  const envLocal = path.resolve(process.cwd(), ".env.local");
+  if (fs.existsSync(envLocal)) {
+    dotenv.config({ path: envLocal, override: true });
+  }
+} catch {
+  // ignore
+}
 
 // Concurrency limiter: max 4 parallel TinyFish requests
 class ConcurrencyLimiter {
@@ -59,6 +72,19 @@ export class TinyFishError extends Error {
 }
 
 function getApiKey(): string {
+  // Always prioritize the active .env.local file on disk
+  try {
+    const envLocal = path.resolve(process.cwd(), ".env.local");
+    if (fs.existsSync(envLocal)) {
+      const parsed = dotenv.parse(fs.readFileSync(envLocal));
+      if (parsed.TINYFISH_API_KEY && parsed.TINYFISH_API_KEY.trim()) {
+        return parsed.TINYFISH_API_KEY.trim();
+      }
+    }
+  } catch {
+    // ignore and fallback
+  }
+
   const key = process.env.TINYFISH_API_KEY;
   if (!key) {
     throw new TinyFishError(401, "TINYFISH_API_KEY is not configured in .env.local");
