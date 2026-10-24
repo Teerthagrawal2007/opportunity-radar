@@ -68,8 +68,19 @@ function getGenAI(): GoogleGenAI {
 }
 
 function getCandidateModels(): string[] {
-  const configured = process.env.GEMINI_MODEL || "gemini-3.5-flash";
-  const defaults = ["gemini-3.5-flash", "gemini-3.1-flash-lite", "gemini-3.8-flash"];
+  let configured = "gemini-3.1-flash-lite";
+  try {
+    const envLocal = path.resolve(process.cwd(), ".env.local");
+    if (fs.existsSync(envLocal)) {
+      const parsed = dotenv.parse(fs.readFileSync(envLocal));
+      if (parsed.GEMINI_MODEL && parsed.GEMINI_MODEL.trim()) {
+        configured = parsed.GEMINI_MODEL.trim();
+      }
+    }
+  } catch {
+    // fallback
+  }
+  const defaults = ["gemini-3.1-flash-lite", "gemini-3.5-flash", "gemini-3.8-flash"];
   return Array.from(new Set([configured, ...defaults]));
 }
 
